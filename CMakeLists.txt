@@ -3,6 +3,11 @@
 
 cmake_minimum_required(VERSION 3.13)
 
+# Allow using old style FetchContent_Populate pattern.
+if (POLICY CMP0169)
+    cmake_policy(SET CMP0169 OLD)
+endif()
+
 ###################################################
 # Project SEAL includes the following components: #
 #   1. SEAL C++ library                           #

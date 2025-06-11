@@ -7,6 +7,7 @@ FetchContent_Declare(
     GIT_TAG        f8745da6ff1ad1e7bab384bd1f9d742439278e99 # 1.5.7
 )
 FetchContent_GetProperties(zstd)
+
 if(NOT zstd_POPULATED)
     FetchContent_Populate(zstd)
 

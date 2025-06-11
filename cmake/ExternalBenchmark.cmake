@@ -8,7 +8,7 @@ FetchContent_Declare(
 )
 FetchContent_GetProperties(benchmark)
 
-if(NOT benchmark)
+if(NOT benchmark_POPULATED)
     FetchContent_Populate(benchmark)
 
     set(LLVMAR_EXECUTABLE ${CMAKE_AR})

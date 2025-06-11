@@ -12,14 +12,14 @@ steps:
 
 - script: |
       cd $BUILD_SOURCESDIRECTORY
-      ./bin/sealtest
+      LD_PRELOAD=libasan.so ./bin/sealtest
   displayName: 'Run unit tests'
 
 - task: UseDotNet@2
-  displayName: 'Get .NET Core 6.0 SDK'
+  displayName: 'Get .NET 8.0 SDK'
   inputs:
     packageType: 'sdk'
-    version: '6.0.x'
+    version: '8.0.x'
 
 - task: DotNetCoreCLI@2
   displayName: 'Run dotnet unit tests'

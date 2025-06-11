@@ -6,6 +6,7 @@ FetchContent_Declare(
     GIT_TAG        51b7f2abdade71cd9bb0e7a373ef2610ec6f9daf # 1.3.1
 )
 FetchContent_GetProperties(zlib)
+
 if(NOT zlib_POPULATED)
     FetchContent_Populate(zlib)
 
