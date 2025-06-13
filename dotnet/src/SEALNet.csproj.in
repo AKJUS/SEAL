@@ -1,34 +1,82 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-    <Authors>Microsoft Research</Authors>
+    <PackageId>Microsoft.Research.SEALNet</PackageId>
+    <Version>@SEAL_VERSION@</Version>
+    <Title>Microsoft SEAL</Title>
+    <Description>Microsoft SEAL is an easy-to-use and powerful open-source homomorphic encryption library developed by researchers in the Cryptography Research Group at Microsoft Research. It is licensed under the MIT license.</Description>
+    <PackageReleaseNotes>https://github.com/Microsoft/SEAL</PackageReleaseNotes>
+    <Authors>Microsoft</Authors>
     <Company>Microsoft Corporation</Company>
-    <Description>.NET wrapper library for Microsoft SEAL</Description>
-    <Copyright>Microsoft Corporation 2020</Copyright>
+    <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
+    <PackageProjectUrl>https://github.com/Microsoft/SEAL</PackageProjectUrl>
+    <PackageTags>c#;crypto;cryptography;homomorphic;encryption</PackageTags>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <_PackageTags>$([System.String]::Copy($(PackageTags)).Replace(';', ' '))</_PackageTags>
+    <NuspecFile>../nuget/SEALNet.nuspec</NuspecFile>
+    <NuspecProperties>id=$(PackageId)</NuspecProperties>
+    <NuspecProperties>$(NuspecProperties);version=$(Version)</NuspecProperties>
+    <NuspecProperties>$(NuspecProperties);title=$(Title)</NuspecProperties>
+    <NuspecProperties>$(NuspecProperties);authors=$(Authors)</NuspecProperties>
+    <NuspecProperties>$(NuspecProperties);description=$(Description)</NuspecProperties>
+    <NuspecProperties>$(NuspecProperties);releaseNotes=$(PackageReleaseNotes)</NuspecProperties>
+    <NuspecProperties>$(NuspecProperties);copyright=$(Copyright)</NuspecProperties>
+    <NuspecProperties>$(NuspecProperties);projectUrl=$(PackageProjectUrl)</NuspecProperties>
+    <NuspecProperties>$(NuspecProperties);tags=$(_PackageTags)</NuspecProperties>
+    <NuspecProperties>$(NuspecProperties);packageLicenseFile=$(PackageLicenseFile)</NuspecProperties>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(PackConfig)' != ''">
+    <NuspecProperties>$(NuspecProperties);packconfig=$(PackConfig)</NuspecProperties>
+  </PropertyGroup>
+
+  <Choose>
+    <When Condition="'$(BuildIOS)' == 'true'">
+      <PropertyGroup>
+        <TargetFramework>net8.0-ios</TargetFramework>
+      </PropertyGroup>
+    </When>
+    <Otherwise>
+      <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+      </PropertyGroup>
+    </Otherwise>
+  </Choose>
+
+  <PropertyGroup>
     <SignAssembly Condition="'$(OS)' == 'Windows_NT' And '$(SEALNetSigningCertificate)' != ''">true</SignAssembly>
     <AssemblyOriginatorKeyFile Condition="'$(OS)' == 'Windows_NT' And '$(SEALNetSigningCertificate)' != ''">SEALNetCert.snk</AssemblyOriginatorKeyFile>
     <DelaySign Condition="'$(OS)' == 'Windows_NT' And '$(SEALNetSigningCertificate)' != ''">true</DelaySign>
   </PropertyGroup>
+
   <PropertyGroup>
-    <DocumentationFile>@CMAKE_RUNTIME_OUTPUT_DIRECTORY@\dotnet\$(Configuration)/SEALNet.xml</DocumentationFile>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <RuntimeIdentifiers>win-x64;linux-x64;osx-x64;osx-arm64;ios-arm64;iossimulator-x64;iossimulator-arm64;android-x64;android-arm64</RuntimeIdentifiers>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetOS)' == 'windows'">
     <PlatformTarget>x64</PlatformTarget>
-    <OutputPath>@CMAKE_RUNTIME_OUTPUT_DIRECTORY@\dotnet\$(Configuration)</OutputPath>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(BuildIOS)' != ''">
-    <DefineConstants>$(DefineConstants);SEAL_IOS</DefineConstants>
-    <DocumentationFile>@CMAKE_RUNTIME_OUTPUT_DIRECTORY@\dotnet\ios\$(Configuration)\SEALNet.xml</DocumentationFile>
-    <OutputPath>@CMAKE_RUNTIME_OUTPUT_DIRECTORY@\dotnet\ios\$(Configuration)</OutputPath>
+
+  <PropertyGroup>
+    <OutputPath>@CMAKE_RUNTIME_OUTPUT_DIRECTORY@/dotnet/$(Configuration)</OutputPath>
   </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
     <DebugType>pdbonly</DebugType>
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
     <DefineConstants>$(DefineConstants);DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="@CMAKE_CURRENT_SOURCE_DIR@\dotnet\src\**\*.cs" />
+    <Compile Include="@CMAKE_CURRENT_SOURCE_DIR@/dotnet/src/**/*.cs" />
   </ItemGroup>
 </Project>

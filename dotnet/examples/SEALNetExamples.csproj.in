@@ -1,16 +1,24 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
-    <Authors>Microsoft Research</Authors>
+    <IsPackable>false</IsPackable>
+    <Authors>Microsoft</Authors>
     <Company>Microsoft Corporation</Company>
+    <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
     <Description>.NET wrapper examples for Microsoft SEAL</Description>
-    <Copyright>Microsoft Corporation 2022</Copyright>
   </PropertyGroup>
 
   <PropertyGroup>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <RuntimeIdentifiers>win-x64;linux-x64;osx-x64;osx-arm64</RuntimeIdentifiers>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetOS)' == 'windows'">
     <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+  <PropertyGroup>
     <OutputPath>@CMAKE_RUNTIME_OUTPUT_DIRECTORY@/dotnet/$(Configuration)</OutputPath>
   </PropertyGroup>
 
@@ -21,7 +29,7 @@
   <ItemGroup>
     <SEALCBinaryFiles Condition="$([MSBuild]::IsOsPlatform(Windows))" Include="@SEAL_WINDOWS_SEAL_C_DIRECTORY@\sealc.dll" />
     <SEALCBinaryFiles Condition="$([MSBuild]::IsOsPlatform(Linux))" Include="@CMAKE_LIBRARY_OUTPUT_DIRECTORY@/libsealc.so*" />
-    <SEALCBinaryFiles Condition="$([MSBuild]::IsOsPlatform(OSX))" Include="@CMAKE_LIBRARY_OUTPUT_DIRECTORY@/libsealc*.dylib" />
+    <SEALCBinaryFiles Condition="$([MSBuild]::IsOsPlatform(macOS))" Include="@CMAKE_LIBRARY_OUTPUT_DIRECTORY@/libsealc*.dylib" />
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
@@ -29,6 +37,6 @@
   </Target>
 
   <ItemGroup>
-    <Compile Include="@CMAKE_CURRENT_SOURCE_DIR@\dotnet\examples\**\*.cs" />
+    <Compile Include="@CMAKE_CURRENT_SOURCE_DIR@/dotnet/examples/**/*.cs" />
   </ItemGroup>
 </Project>

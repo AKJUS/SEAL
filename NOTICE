@@ -11,7 +11,7 @@ The BLAKE2 library is licensed under CC0 Universal, version 1.0. You can find a 
 This software includes parts of the Kyber library (https://github.com/pq-crystals/kyber).
 The Kyber library is licensed under CC0 Universal, version 1.0. You can find a copy of this license at https://creativecommons.org/publicdomain/zero/1.0/legalcode
 
-This software includes parts of the ZSTD library, version 1.4.5 (https://github.com/facebook/zstd):
+This software includes parts of the ZSTD library (https://github.com/facebook/zstd):
 ZSTD NOTICES AND INFORMATION BEGIN HERE
 ===============================================================================
 BSD License

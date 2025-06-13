@@ -195,7 +195,7 @@ if(SEAL_USE_ZSTD)
         seal_fetch_thirdparty_content(ExternalZSTD)
         set(zstd_static "libzstd_static")
     else()
-        find_package(zstd CONFIG)
+        find_package(zstd 1 CONFIG)
         if(NOT zstd_FOUND)
             message(FATAL_ERROR "Zstandard: not found")
         else()
@@ -228,7 +228,7 @@ if(SEAL_USE_INTEL_HEXL)
         message(STATUS "Intel HEXL: download ...")
         seal_fetch_thirdparty_content(ExternalIntelHEXL)
     else()
-        find_package(HEXL 1.2.4)
+        find_package(HEXL 1)
         if (NOT TARGET HEXL::hexl)
             message(FATAL_ERROR "Intel HEXL: not found")
         endif()
@@ -488,8 +488,7 @@ else()
         # Install shared HEXL library to installation directory
         install(DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
             DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_LIBRARY_PREFIX}
-            FILES_MATCHING PATTERN "*hexl*"
-            )
+            FILES_MATCHING PATTERN "*hexl*")
     endif()
 endif()
 
@@ -761,7 +760,8 @@ configure_file(
 
 set(NUGET_WINDOWS_SEAL_C_PATH "")
 set(NUGET_LINUX_SEAL_C_PATH "")
-set(NUGET_MACOS_SEAL_C_PATH "")
+set(NUGET_MACOS_X64_SEAL_C_PATH "")
+set(NUGET_MACOS_ARM64_SEAL_C_PATH "")
 
 # Supporting local building of NuGet package
 if(WIN32)
@@ -769,7 +769,13 @@ if(WIN32)
 elseif(UNIX AND NOT APPLE)
     set(NUGET_LINUX_SEAL_C_PATH ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libsealc.so)
 elseif(APPLE)
-    set(NUGET_MACOS_SEAL_C_PATH ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libsealc.dylib)
+    # Depending on whether we are on x64 or ARM64, we will set the path to the
+    # dynamic library to be included in the NuGet package.
+    if(CMAKE_OSX_ARCHITECTURES MATCHES "arm64")
+        set(NUGET_MACOS_ARM64_SEAL_C_PATH ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libsealc.dylib)
+    else()
+        set(NUGET_MACOS_X64_SEAL_C_PATH ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libsealc.dylib)
+    endif()
 endif()
 
 # Create SEALNet.nuspec for a local NuGet pack from SEALNet.nuspec.in
@@ -777,3 +783,7 @@ configure_file(
     ${CMAKE_CURRENT_LIST_DIR}/dotnet/nuget/SEALNet.nuspec.in
     ${CMAKE_CURRENT_BINARY_DIR}/dotnet/nuget/SEALNet.nuspec
     @ONLY)
+
+# Copy over SEALNet.targets as well.
+file(COPY ${CMAKE_CURRENT_LIST_DIR}/dotnet/nuget/SEALNet.targets
+    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/dotnet/nuget)
