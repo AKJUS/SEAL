@@ -1,6 +1,6 @@
 # List of Changes
 
-## Version 4.1.3
+## Version 4.2.0
 
 - Merged [(PR #729)](https://github.com/microsoft/SEAL/pull/729): Updated `zlib` and `zstd` versions.
 - Updated Intel HEXL, Google Benchmark, GTest, MSGSL dependency versions.

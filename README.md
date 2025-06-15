@@ -4,7 +4,7 @@ Microsoft SEAL is an easy-to-use open-source ([MIT licensed](LICENSE)) homomorph
 Microsoft SEAL is written in modern standard C++ and is easy to compile and run in many different environments.
 For more information about the Microsoft SEAL project, see [sealcrypto.org](https://www.microsoft.com/en-us/research/project/microsoft-seal).
 
-This document pertains to Microsoft SEAL version 4.1.
+This document pertains to Microsoft SEAL version 4.2.
 Users of previous versions of the library should look at the [list of changes](CHANGES.md).
 
 ## News
@@ -460,7 +460,7 @@ It is very easy to link your own applications and libraries with Microsoft SEAL 
 Simply add the following to your `CMakeLists.txt`:
 
 ```PowerShell
-find_package(SEAL 4.1 REQUIRED)
+find_package(SEAL 4.2 REQUIRED)
 target_link_libraries(<your target> SEAL::seal)
 ```
 
@@ -543,6 +543,19 @@ For contributing to Microsoft SEAL, please see [CONTRIBUTING.md](CONTRIBUTING.md
 ## Citing Microsoft SEAL
 
 To cite Microsoft SEAL in academic papers, please use the following BibTeX entries.
+
+### Version 4.2
+
+```tex
+    @misc{sealcrypto,
+        title = {{M}icrosoft {SEAL} (release 4.2)},
+        howpublished = {\url{https://github.com/Microsoft/SEAL}},
+        month = jul,
+        year = 2025,
+        note = {Microsoft Research, Redmond, WA.},
+        key = {SEAL}
+    }
+```
 
 ### Version 4.1
 
