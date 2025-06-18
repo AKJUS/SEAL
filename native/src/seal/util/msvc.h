@@ -67,7 +67,7 @@
 #define SEAL_MULTIPLY_UINT64(operand1, operand2, result128) result128[0] = _umul128(operand1, operand2, result128 + 1);
 
 // For now, use _umul128 also for SEAL_MULTIPLY_UINT64_HW
-#define SEAL_MULTIPLY_UINT64_HW64(operand1, operand2, hw64) _umul128(operand1, operand2, hw64);
+#define SEAL_MULTIPLY_UINT64_HW64(operand1, operand2, hw64) _umul128(operand1, operand2, hw64)
 #endif
 
 #ifdef SEAL_USE___UMULH

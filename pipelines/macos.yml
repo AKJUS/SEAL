@@ -34,7 +34,7 @@ steps:
       -DSEAL_BUILD_TESTS=ON
       -DSEAL_BUILD_SEAL_C=ON
       -DSEAL_BUILD_EXAMPLES=ON
-      -C cmake/functions.macOS-arm64.cmake
+      -C cmake/functions.macos-arm64.cmake
 
 - script: |
     cmake --build build-arm64 \
