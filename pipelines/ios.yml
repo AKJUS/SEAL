@@ -40,32 +40,42 @@ steps:
       cp build-arm64/lib/${{ parameters.configuration }}/libseal*.a $BUILD_SOURCESDIRECTORY/lib/iossimulator-arm64
 
       cd lib
+      mkdir -p iossimulator
+
       echo Creating fat libraries for Simulator
-      lipo -create -output libseal.a iossimulator-x64/libseal-*.a iossimulator-arm64/libseal-*.a
-      lipo -create -output libsealc.a iossimulator-x64/libsealc-*.a iossimulator-arm64/libsealc-*.a
+      lipo -create -output iossimulator/libseal.a iossimulator-x64/libseal-*.a iossimulator-arm64/libseal-*.a
+      lipo -create -output iossimulator/libsealc.a iossimulator-x64/libsealc-*.a iossimulator-arm64/libsealc-*.a
 
-      echo Architectures for libseal.a
-      lipo -info libseal.a
+      echo Architectures for iossimulator/libseal.a
+      lipo -info iossimulator/libseal.a
 
-      echo Architectures for libsealc.a
-      lipo -info libsealc.a
+      echo Architectures for iossimulator/libsealc.a
+      lipo -info iossimulator/libsealc.a
   displayName: 'Build SEAL for Simulator (x64 and arm64)'
 
 - script: |
       cd $BUILD_SOURCESDIRECTORY
       xcodebuild -project build-arm64/SEAL.xcodeproj -sdk iphoneos -arch arm64 -configuration ${{ parameters.configuration }} clean build
-      mkdir -p $BUILD_SOURCESDIRECTORY/lib/ios-arm64
+      mkdir -p $BUILD_SOURCESDIRECTORY/lib/ios
+
       echo Copying arm64 libraries from build-arm64/lib/${{ parameters.configuration }}/
-      cp build-arm64/lib/${{ parameters.configuration }}/libseal-4.2.a $BUILD_SOURCESDIRECTORY/lib/ios-arm64/libseal.a
-      cp build-arm64/lib/${{ parameters.configuration }}/libsealc-4.2.a $BUILD_SOURCESDIRECTORY/lib/ios-arm64/libsealc.a
+      cp build-arm64/lib/${{ parameters.configuration }}/libseal-4.2.a $BUILD_SOURCESDIRECTORY/lib/ios/libseal.a
+      cp build-arm64/lib/${{ parameters.configuration }}/libsealc-4.2.a $BUILD_SOURCESDIRECTORY/lib/ios/libsealc.a
   displayName: 'Build SEAL for iOS (arm64)'
 
 - task: CopyFiles@2
-  displayName: 'Copy Files to: $(Build.ArtifactStagingDirectory)'
+  displayName: 'Copy iOS Simulator Files to: $(Build.ArtifactStagingDirectory)'
   inputs:
-      SourceFolder: '$(Build.SourcesDirectory)/lib'
+      SourceFolder: '$(Build.SourcesDirectory)/lib/iossimulator'
       Contents: 'libseal*'
-      TargetFolder: '$(Build.ArtifactStagingDirectory)/lib'
+      TargetFolder: '$(Build.ArtifactStagingDirectory)/lib/iossimulator'
+
+- task: CopyFiles@2
+  displayName: 'Copy iOS Files to: $(Build.ArtifactStagingDirectory)'
+  inputs:
+      SourceFolder: '$(Build.SourcesDirectory)/lib/ios'
+      Contents: 'libseal*'
+      TargetFolder: '$(Build.ArtifactStagingDirectory)/lib/ios'
 
 - task: PublishBuildArtifacts@1
   displayName: 'Publish Artifact: drop'
