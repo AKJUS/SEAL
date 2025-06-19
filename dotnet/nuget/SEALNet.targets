@@ -7,11 +7,11 @@
 
   <!-- For iOS devices (arm64) we need to statically link libsealc.a and libseal.a -->
   <ItemGroup Condition="'$(RuntimeIdentifier)' == 'ios-arm64'">
-    <NativeLibrary Include="runtimes/ios-arm64/native/libsealc.a"
+    <NativeLibrary Include="$(MSBuildThisFileDirectory)../runtimes/ios-arm64/native/libsealc.a"
                   Kind="Static"
                   ForceLoad="True"
                   IsCxx="True" />
-    <NativeLibrary Include="runtimes/ios-arm64/native/libseal.a"
+    <NativeLibrary Include="$(MSBuildThisFileDirectory)../runtimes/ios-arm64/native/libseal.a"
                   Kind="Static"
                   ForceLoad="True"
                   IsCxx="True" />
@@ -20,53 +20,13 @@
   <!-- For iOS simulator (arm64 and x64) we choose to also statically link libsealc.a and libseal.a,
        although this is not technically necessary. We use a combined archive for x64 and arm64. -->
   <ItemGroup Condition="$([System.String]::Copy($(RuntimeIdentifier)).StartsWith('iossimulator'))">
-    <NativeLibrary Include="runtimes/iossimulator/native/libsealc.a"
+    <NativeLibrary Include="$(MSBuildThisFileDirectory)../runtimes/iossimulator/native/libsealc.a"
                   Kind="Static"
                   ForceLoad="True"
                   IsCxx="True" />
-    <NativeLibrary Include="runtimes/iossimulator/native/libseal.a"
+    <NativeLibrary Include="$(MSBuildThisFileDirectory)../runtimes/iossimulator/native/libseal.a"
                   Kind="Static"
                   ForceLoad="True"
                   IsCxx="True" />
   </ItemGroup>
-<!--
-  <PropertyGroup>
-    <IsSEALMobile>False</IsSEALMobile>
-    <IsSEALMobile Condition="'$(AndroidApplication)'=='True' Or '$(Platform)'=='iPhone' Or '$(Platform)'=='iPhoneSimulator'">True</IsSEALMobile>
-  </PropertyGroup>
-  <ItemGroup>
-    <SEALCBinaryFiles Condition="$([MSBuild]::IsOsPlatform('Windows'))" Include="$(MSBuildThisFileDirectory)../runtimes/win-x64/native/sealc.dll" />
-    <SEALCBinaryFiles Condition="$([MSBuild]::IsOsPlatform('Linux'))" Include="$(MSBuildThisFileDirectory)../runtimes/linux-x64/native/libsealc.so*" />
-    <SEALCBinaryFiles Condition="$([MSBuild]::IsOsPlatform('macOS'))" Include="$(MSBuildThisFileDirectory)../runtimes/osx-x64/native/libsealc*.dylib" />
-  </ItemGroup>
-  <ItemGroup Condition="!$(IsSEALMobile)">
-    <None Include="@(SEALCBinaryFiles)">
-      <Link Condition="$([MSBuild]::IsOsPlatform('Windows'))">sealc.dll</Link>
-      <Link Condition="$([MSBuild]::IsOsPlatform('Linux'))">libsealc.so</Link>
-      <Link Condition="$([MSBuild]::IsOsPlatform('macOS'))">libsealc.dylib</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-  <ItemGroup Condition="'$(AndroidApplication)'=='True'">
-    <AndroidNativeLibrary Include="$(MSBuildThisFileDirectory)../runtimes/android-arm64/native/libsealc.so">
-      <Abi>arm64-v8a</Abi>
-      <Link>libs\arm64-v8a\libsealc.so</Link>
-    </AndroidNativeLibrary>
-    <AndroidNativeLibrary Include="$(MSBuildThisFileDirectory)../runtimes/android-x64/native/libsealc.so">
-      <Abi>x86_64</Abi>
-      <Link>libs\x86_64\libsealc.so</Link>
-    </AndroidNativeLibrary>
-  </ItemGroup>
-  <ItemGroup Condition="'$(Platform)'=='iPhone' Or '$(Platform)'=='iPhoneSimulator'">
-    <NativeReference Include="$(MSBuildThisFileDirectory)../runtimes/ios64/native/libsealc.a">
-      <Kind>Static</Kind>
-      <ForceLoad>True</ForceLoad>
-      <IsCxx>True</IsCxx>
-    </NativeReference>
-    <NativeReference Include="$(MSBuildThisFileDirectory)../runtimes/ios64/native/libseal.a">
-      <Kind>Static</Kind>
-      <ForceLoad>True</ForceLoad>
-      <IsCxx>True</IsCxx>
-    </NativeReference>
-  </ItemGroup> -->
 </Project>

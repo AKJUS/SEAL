@@ -29,11 +29,11 @@
     <file src="$NUGET_IOSSIMULATOR_SEAL_PATH$" target="runtimes/iossimulator/native/" />
     <file src="$NUGET_IOS_ARM64_SEAL_C_PATH$" target="runtimes/ios-arm64/native/" />
     <file src="$NUGET_IOS_ARM64_SEAL_PATH$" target="runtimes/ios-arm64/native/" />
-    <file src="../../build/bin/dotnet/$configuration$/net8.0/SEALNet.dll" target="lib/net8.0/" />
-    <file src="../../build/bin/dotnet/$configuration$/net8.0/SEALNet.xml" target="lib/net8.0/" />
-    <file src="../../build/bin/dotnet/$configuration$/net8.0-ios/SEALNet.dll" target="lib/net8.0-ios/" />
-    <file src="../../build/bin/dotnet/$configuration$/net8.0-ios/SEALNet.xml" target="lib/net8.0-ios/" />
-    <file src="../../../LICENSE" target="LICENSE" />
-    <file src="../../../NOTICE" target="/ThirdPartyNotices" />
+    <file src="../../build/bin/dotnet/$Configuration$/net8.0/SEALNet.dll" target="lib/net8.0/" />
+    <file src="../../build/bin/dotnet/$Configuration$/net8.0/SEALNet.xml" target="lib/net8.0/" />
+    <file src="../../build/bin/dotnet/$Configuration$/net8.0-ios/SEALNet.dll" target="lib/net8.0-ios/" />
+    <file src="../../build/bin/dotnet/$Configuration$/net8.0-ios/SEALNet.xml" target="lib/net8.0-ios/" />
+    <file src="../../LICENSE" target="LICENSE" />
+    <file src="../../NOTICE" target="/ThirdPartyNotices" />
   </files>
 </package>
