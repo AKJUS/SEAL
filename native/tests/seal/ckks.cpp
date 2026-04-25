@@ -169,8 +169,9 @@ namespace sealtest
             // Many primes
             size_t slots = 32;
             parms.set_poly_modulus_degree(128);
-            parms.set_coeff_modulus(CoeffModulus::Create(
-                128, { 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30 }));
+            parms.set_coeff_modulus(
+                CoeffModulus::Create(
+                    128, { 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30 }));
             SEALContext context(parms, false, sec_level_type::none);
 
             vector<complex<double>> values(slots);

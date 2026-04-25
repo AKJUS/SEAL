@@ -481,9 +481,30 @@ namespace seal
             }
 
             // Check that scale is positive and not too large
-            if (scale <= 0 || (static_cast<int>(log2(scale)) + 1 >= context_data.total_coeff_modulus_bit_count()))
+            if (!std::isfinite(scale) || scale <= 0 ||
+                (static_cast<int>(log2(scale)) + 1 >= context_data.total_coeff_modulus_bit_count()))
             {
                 throw std::invalid_argument("scale out of bounds");
+            }
+
+            // Reject non-finite user inputs up front so they can't drive the
+            // FFT into producing inf/NaN coefficients.
+            for (std::size_t i = 0; i < values_size; i++)
+            {
+                if constexpr (std::is_same<std::remove_cv_t<T>, double>::value)
+                {
+                    if (!std::isfinite(values[i]))
+                    {
+                        throw std::invalid_argument("values must be finite");
+                    }
+                }
+                else
+                {
+                    if (!std::isfinite(values[i].real()) || !std::isfinite(values[i].imag()))
+                    {
+                        throw std::invalid_argument("values must be finite");
+                    }
+                }
             }
 
             auto ntt_tables = context_data.small_ntt_tables();
@@ -506,10 +527,16 @@ namespace seal
             {
                 max_coeff = std::max<>(max_coeff, std::fabs(conj_values[i].real()));
             }
+            // Catch FFT overflow before the cast: even finite inputs can
+            // produce inf coefficients after multiplication by scale/n.
+            if (!std::isfinite(max_coeff))
+            {
+                throw std::invalid_argument("encoded values are too large");
+            }
             // Verify that the values are not too large to fit in coeff_modulus
             // Note that we have an extra + 1 for the sign bit
             // Don't compute logarithmis of numbers less than 1
-            int max_coeff_bit_count = static_cast<int>(std::ceil(std::log2(std::max<>(max_coeff, 1.0)))) + 1;
+            int max_coeff_bit_count = util::safe_ceil_log2_int(std::max<>(max_coeff, 1.0)) + 1;
             if (max_coeff_bit_count >= context_data.total_coeff_modulus_bit_count())
             {
                 throw std::invalid_argument("encoded values are too large");
@@ -661,7 +688,7 @@ namespace seal
             auto ntt_tables = context_data.small_ntt_tables();
 
             // Check that scale is positive and not too large
-            if (plain.scale() <= 0 ||
+            if (!std::isfinite(plain.scale()) || plain.scale() <= 0 ||
                 (static_cast<int>(log2(plain.scale())) >= context_data.total_coeff_modulus_bit_count()))
             {
                 throw std::invalid_argument("scale out of bounds");

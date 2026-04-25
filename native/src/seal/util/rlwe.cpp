@@ -78,8 +78,9 @@ namespace seal
 
             if (!are_close(global_variables::noise_standard_deviation, 3.2))
             {
-                throw logic_error("centered binomial distribution only supports standard deviation 3.2; use rounded "
-                                  "Gaussian instead");
+                throw logic_error(
+                    "centered binomial distribution only supports standard deviation 3.2; use rounded "
+                    "Gaussian instead");
             }
 
             auto cbd = [&]() {

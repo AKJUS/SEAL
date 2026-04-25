@@ -44,7 +44,7 @@ namespace seal
                 scale_bit_count_bound = -1;
             };
 
-            return !(scale <= 0 || (static_cast<int>(log2(scale)) >= scale_bit_count_bound));
+            return !(!isfinite(scale) || scale <= 0 || (static_cast<int>(log2(scale)) >= scale_bit_count_bound));
         }
 
         /**

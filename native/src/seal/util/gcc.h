@@ -22,7 +22,7 @@
 #ifdef SEAL_USE_ALIGNED_ALLOC
 #include <cstdlib>
 #define SEAL_MALLOC(size) \
-    static_cast<seal_byte *>((((size)&63) == 0) ? std::aligned_alloc(64, (size)) : std::malloc((size)))
+    static_cast<seal_byte *>((((size) & 63) == 0) ? std::aligned_alloc(64, (size)) : std::malloc((size)))
 #define SEAL_FREE(ptr) std::free(ptr)
 #endif
 
@@ -73,9 +73,9 @@ __extension__ typedef unsigned __int128 uint128_t;
 #endif
 
 // GCC intrinsics for _addcarry_u64 is disabled, for it compiles to slower code than add_uint64_generic.
-//#ifdef SEAL_USE__ADDCARRY_U64
-//#define SEAL_ADD_CARRY_UINT64(operand1, operand2, carry, result) _addcarry_u64(carry, operand1, operand2, result)
-//#endif
+// #ifdef SEAL_USE__ADDCARRY_U64
+// #define SEAL_ADD_CARRY_UINT64(operand1, operand2, carry, result) _addcarry_u64(carry, operand1, operand2, result)
+// #endif
 
 #ifdef SEAL_USE__SUBBORROW_U64
 #if ((__GNUC__ == 7) && (__GNUC_MINOR__ >= 2)) || (__GNUC__ >= 8)

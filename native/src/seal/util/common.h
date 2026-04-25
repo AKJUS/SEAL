@@ -178,7 +178,7 @@ namespace seal
         }
 
         template <typename T, typename... Args, typename = std::enable_if_t<std::is_integral<T>::value>>
-        SEAL_NODISCARD inline constexpr T mul_safe(T in1, T in2, Args &&... args)
+        SEAL_NODISCARD inline constexpr T mul_safe(T in1, T in2, Args &&...args)
         {
             return mul_safe(mul_safe(in1, in2), mul_safe(std::forward<Args>(args)...));
         }
@@ -214,7 +214,7 @@ namespace seal
         }
 
         template <typename T, typename... Args, typename = std::enable_if_t<std::is_arithmetic<T>::value>>
-        SEAL_NODISCARD inline constexpr T add_safe(T in1, T in2, Args &&... args)
+        SEAL_NODISCARD inline constexpr T add_safe(T in1, T in2, Args &&...args)
         {
             return add_safe(add_safe(in1, in2), add_safe(std::forward<Args>(args)...));
         }
@@ -318,25 +318,25 @@ namespace seal
         }
 
         template <typename T, typename... Args, typename = std::enable_if_t<std::is_arithmetic<T>::value>>
-        SEAL_NODISCARD inline constexpr bool sum_fits_in(Args &&... args)
+        SEAL_NODISCARD inline constexpr bool sum_fits_in(Args &&...args)
         {
             return fits_in<T>(add_safe(std::forward<Args>(args)...));
         }
 
         template <typename T, typename... Args, typename = std::enable_if_t<std::is_arithmetic<T>::value>>
-        SEAL_NODISCARD inline constexpr bool sum_fits_in(T in1, Args &&... args)
+        SEAL_NODISCARD inline constexpr bool sum_fits_in(T in1, Args &&...args)
         {
             return fits_in<T>(add_safe(in1, std::forward<Args>(args)...));
         }
 
         template <typename T, typename... Args, typename = std::enable_if_t<std::is_arithmetic<T>::value>>
-        SEAL_NODISCARD inline constexpr bool product_fits_in(Args &&... args)
+        SEAL_NODISCARD inline constexpr bool product_fits_in(Args &&...args)
         {
             return fits_in<T>(mul_safe(std::forward<Args>(args)...));
         }
 
         template <typename T, typename... Args, typename = std::enable_if_t<std::is_arithmetic<T>::value>>
-        SEAL_NODISCARD inline constexpr bool product_fits_in(T in1, Args &&... args)
+        SEAL_NODISCARD inline constexpr bool product_fits_in(T in1, Args &&...args)
         {
             return fits_in<T>(mul_safe(in1, std::forward<Args>(args)...));
         }
@@ -577,6 +577,29 @@ namespace seal
         SEAL_NODISCARD inline constexpr bool is_zero(T value) noexcept
         {
             return value == T{ 0 };
+        }
+
+        // True iff x is finite, non-negative, and strictly less than 2^64.
+        // Use before any static_cast<uint64_t>(double): the cast is UB for
+        // inf, NaN, negative, or out-of-range inputs.
+        SEAL_NODISCARD inline bool is_safe_uint64_cast(double x) noexcept
+        {
+            // 2^64 is exactly representable as a double; values >= it round up
+            // out of uint64_t range.
+            constexpr double two_pow_64 = 18446744073709551616.0;
+            return std::isfinite(x) && x >= 0.0 && x < two_pow_64;
+        }
+
+        // Returns ceil(log2(x)) as int. Throws invalid_argument if x is not
+        // finite or not strictly positive. Use instead of
+        // static_cast<int>(ceil(log2(x))), which is UB for x = inf/NaN/<=0.
+        SEAL_NODISCARD inline int safe_ceil_log2_int(double x)
+        {
+            if (!std::isfinite(x) || x <= 0.0)
+            {
+                throw std::invalid_argument("argument to log2 not finite and positive");
+            }
+            return static_cast<int>(std::ceil(std::log2(x)));
         }
 
         void seal_memzero(void *data, std::size_t size);

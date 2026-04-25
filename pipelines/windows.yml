@@ -1,15 +1,4 @@
 steps:
-- task: NuGetToolInstaller@1
-  displayName: 'Use NuGet'
-  inputs:
-    versionSpec: ${{ parameters.nuget_version }}
-
-- task: NuGetCommand@2
-  displayName: 'NuGet restore Configuration Packages'
-  inputs:
-    restoreSolution: tools/config/packages.config
-    restoreDirectory: ConfigPackages
-
 - task: UseDotNet@2
   displayName: 'Get .NET 10.0 SDK'
   inputs:
@@ -50,49 +39,40 @@ steps:
     configuration: ${{ parameters.configuration }}
     diagnosticsEnabled: True
 
-- task: NuGetCommand@2
-  displayName: 'NuGet restore from Solution'
+- task: DotNetCoreCLI@2
+  displayName: 'Restore SEALNet'
   inputs:
     command: 'restore'
-    restoreSolution: '$(Build.SourcesDirectory)/build/dotnet/SEALNet.sln'
-    feedsToUse: 'select'
+    projects: '$(Build.SourcesDirectory)/build/dotnet/SEALNet.sln'
 
-- task: MSBuild@1
+- task: DotNetCoreCLI@2
   displayName: 'Build SEALNet'
   inputs:
-    solution: '$(Build.SourcesDirectory)/build/dotnet/SEALNet.sln'
-    platform: 'Any CPU'
-    configuration: '${{ parameters.configuration }}'
-    msbuildVersion: 'latest'
+    command: 'build'
+    projects: '$(Build.SourcesDirectory)/build/dotnet/SEALNet.sln'
+    arguments: '--configuration ${{ parameters.configuration }} --no-restore'
 
-- task: VSTest@2
-  displayName: 'VsTest - dotnet tests'
+- task: DotNetCoreCLI@2
+  displayName: 'Test SEALNet'
   inputs:
-    testAssemblyVer2: |
-        **\${{ parameters.configuration }}\**\sealnettest.dll
-        !**\obj\**
-        !**\ref\**
-    configuration: ${{ parameters.configuration }}
-    diagnosticsEnabled: True
+    command: 'test'
+    projects: '$(Build.SourcesDirectory)/build/dotnet/tests/SEALNetTest.csproj'
+    arguments: '--configuration ${{ parameters.configuration }} --no-build'
 
 - ${{ if eq(parameters.configuration, 'Release') }}:
-  - task: MSBuild@1
+  - task: DotNetCoreCLI@2
     displayName: 'Restore SEALNet for iOS'
     inputs:
-      solution: '$(Build.SourcesDirectory)/build/dotnet/src/SEALNet.csproj'
-      platform: 'Any CPU'
-      msbuildArguments: '/p:BuildIOS=true /t:Restore'
-      configuration: '${{ parameters.configuration }}'
-      msbuildVersion: 'latest'
+      command: 'restore'
+      projects: '$(Build.SourcesDirectory)/build/dotnet/src/SEALNet.csproj'
+      arguments: '-p:BuildIOS=true'
 
-  - task: MSBuild@1
+  - task: DotNetCoreCLI@2
     displayName: 'Build SEALNet for iOS'
     inputs:
-      solution: '$(Build.SourcesDirectory)/build/dotnet/src/SEALNet.csproj'
-      platform: 'Any CPU'
-      msbuildArguments: '/p:BuildIOS=true'
-      configuration: '${{ parameters.configuration }}'
-      msbuildVersion: 'latest'
+      command: 'build'
+      projects: '$(Build.SourcesDirectory)/build/dotnet/src/SEALNet.csproj'
+      arguments: '--configuration ${{ parameters.configuration }} --no-restore -p:BuildIOS=true'
 
   - task: PublishSymbols@2
     displayName: 'Publish symbols path'

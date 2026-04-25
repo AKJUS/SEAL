@@ -99,15 +99,31 @@ namespace seal
         }
 
         // Check that scale is positive and not too large
-        if (scale <= 0 || (static_cast<int>(log2(scale)) >= context_data.total_coeff_modulus_bit_count()))
+        if (!isfinite(scale) || scale <= 0 ||
+            (static_cast<int>(log2(scale)) >= context_data.total_coeff_modulus_bit_count()))
         {
             throw invalid_argument("scale out of bounds");
+        }
+
+        // Reject non-finite user input up front.
+        if (!isfinite(value))
+        {
+            throw invalid_argument("value must be finite");
         }
 
         // Compute the scaled value
         value *= scale;
 
-        int coeff_bit_count = static_cast<int>(log2(fabs(value))) + 2;
+        // Catch overflow in value * scale before the cast: even finite
+        // operands can produce inf here.
+        if (!isfinite(value))
+        {
+            throw invalid_argument("encoded value is too large");
+        }
+
+        // Guard against fabs(value) < 1 (log2 negative or -inf -> UB on cast).
+        // Anything with magnitude below 1 fits trivially in the fast path.
+        int coeff_bit_count = (fabs(value) < 1.0) ? 2 : (static_cast<int>(log2(fabs(value))) + 2);
         if (coeff_bit_count >= context_data.total_coeff_modulus_bit_count())
         {
             throw invalid_argument("encoded value is too large");

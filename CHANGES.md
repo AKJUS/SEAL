@@ -4,7 +4,9 @@
 
 - Merged [(PR #734)](https://github.com/microsoft/SEAL/pull/734): Fixed `IterTuple` constructors that returned references to local temporaries.
 - Merged [(PR #738)](https://github.com/microsoft/SEAL/pull/738): Fixed out-of-bounds read in `Serialization_IsCompatibleVersion` and `Serialization_IsValidHeader` (C API).
+- Fixed undefined behavior in CKKS encoding reported in [(issue #732)](https://github.com/microsoft/SEAL/issues/732) by [Wowblk](https://github.com/Wowblk), and other instances of a similar broken pattern.
 - Bumped .NET target framework from `net8.0` to `net10.0`.
+- Updated dependency versions: Google Benchmark to 1.9.5, GoogleTest to 1.17.0, MSGSL to 4.2.1, zlib to 1.3.2.
 - Added `cmake/ios_xcframework.cmake` and a CI artifact that produces `libseal-<ver>.xcframework` and `libsealc-<ver>.xcframework` in one command.
 - Added `CMakePresets.json` for Windows, Linux, and macOS development.
 - No further releases will be published to NuGet.org. Users who want newer versions in .NET projects should build their own NuGet package from source.

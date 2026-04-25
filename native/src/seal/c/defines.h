@@ -48,7 +48,7 @@ static_assert(false, "Require architecture == x64");
 
 #define FACILITY_WIN32 7
 #define HRESULT_FROM_WIN32(x) \
-    ((HRESULT)(x) <= 0 ? ((HRESULT)(x)) : ((HRESULT)(((x)&0x0000FFFF) | (FACILITY_WIN32 << 16) | 0x80000000)))
+    ((HRESULT)(x) <= 0 ? ((HRESULT)(x)) : ((HRESULT)(((x) & 0x0000FFFF) | (FACILITY_WIN32 << 16) | 0x80000000)))
 
 #define ERROR_INSUFFICIENT_BUFFER 122L
 #define ERROR_INVALID_INDEX 1413L
