@@ -105,8 +105,8 @@ namespace Microsoft.Research.SEAL
             if (null == copy)
                 throw new ArgumentNullException(nameof(copy));
 
-            // Use Activator to get around lack of constructor
-            obj_ =  (T)Activator.CreateInstance(typeof(T), copy.obj_);
+            obj_ = new T();
+            obj_.Set(copy.obj_);
         }
 
         /// <summary>

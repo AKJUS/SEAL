@@ -17,9 +17,10 @@
                   IsCxx="True" />
   </ItemGroup>
 
-  <!-- For iOS simulator (arm64 and x64) we choose to also statically link libsealc.a and libseal.a,
-       although this is not technically necessary. We use a combined archive for x64 and arm64. -->
-  <ItemGroup Condition="$([System.String]::Copy($(RuntimeIdentifier)).StartsWith('iossimulator'))">
+  <!-- For the iOS simulator we statically link libsealc.a and libseal.a. Only
+       the arm64 simulator slice is shipped; building a MAUI app for an Intel
+       Mac iOS simulator (iossimulator-x64) is not supported. -->
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'iossimulator-arm64'">
     <NativeLibrary Include="$(MSBuildThisFileDirectory)../runtimes/iossimulator/native/libsealc.a"
                   Kind="Static"
                   ForceLoad="True"

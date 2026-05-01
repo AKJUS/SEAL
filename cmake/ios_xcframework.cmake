@@ -7,6 +7,16 @@
 # each containing two arm64 slices: one for iOS device (iphoneos) and one for
 # the iOS simulator on Apple Silicon (iphonesimulator).
 #
+# Design notes:
+# - iOS-only by design (no macOS / Mac Catalyst / x86_64 simulator slices).
+# - Static-archive XCFrameworks: the inner artifacts are .a files, not
+#   .framework bundles. They carry no LC_RPATH / install-name / load
+#   commands; the consumer's link step pulls our .o files into their final
+#   binary. Required because iOS App Store policy disallows dlopen of
+#   arbitrary user dynamic code.
+# - zlib/zstd are merged into libseal-<ver>.a via seal_combine_archives, so
+#   consumers don't need to link them separately.
+#
 # Usage (from project root):
 #   cmake -P cmake/ios_xcframework.cmake
 #   cmake -DBUILD_TYPE=Debug -P cmake/ios_xcframework.cmake

@@ -109,6 +109,26 @@ macro(seal_set_secure_compile_options target scope)
         target_compile_options(${target} ${scope} /Qspectre)
         target_link_options(${target} ${scope} /guard:cf)
         target_link_options(${target} ${scope} /DYNAMICBASE)
+    else()
+        # Stack canaries on every function with non-trivial stack usage.
+        target_compile_options(${target} ${scope}
+            $<$<COMPILE_LANGUAGE:C,CXX>:-fstack-protector-strong>)
+
+        # Standard library hardening: bounds checks on container access,
+        # null checks on string_view(const char*), etc. ABI-safe and
+        # designed to be cheap enough to leave on in production. Skip in
+        # Debug since the stdlibs already enable heavier checks there.
+        target_compile_definitions(${target} ${scope}
+            $<$<NOT:$<CONFIG:Debug>>:_GLIBCXX_ASSERTIONS>
+            $<$<NOT:$<CONFIG:Debug>>:_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST>)
+
+        # ELF-only link-time hardening: full RELRO + immediate binding +
+        # non-executable stack. Mach-O equivalents are handled by the Apple
+        # linker automatically.
+        if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "Android")
+            target_link_options(${target} ${scope}
+                -Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack)
+        endif()
     endif()
 endmacro()
 

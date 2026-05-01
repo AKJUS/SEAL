@@ -1,5 +1,11 @@
 # List of Changes
 
+## Version 4.3.2
+
+- Switched the macOS install RPATH to loader-relative (`@loader_path`) and disabled `CMAKE_INSTALL_RPATH_USE_LINK_PATH`. No effect on the default static build or the NuGet artifact.
+- Tightened `dotnet/nuget/SEALNet.targets` to match `iossimulator-arm64` only; Intel Mac iOS-simulator targets are not supported.
+- `SEAL_SECURE_COMPILE_OPTIONS` (default `OFF`) now also enables stack canaries, libstdc++/libc++ hardening, and ELF link-time hardening on GCC/Clang.
+
 ## Version 4.3.1
 
 - Merged [(PR #740)](https://github.com/microsoft/SEAL/pull/740): Removed the version restriction on `find_package(HEXL)`, which was incompatible with HEXL's exact-version `HEXLConfigVersion.cmake`.

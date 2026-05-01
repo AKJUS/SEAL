@@ -18,7 +18,7 @@
     <requireLicenseAcceptance>true</requireLicenseAcceptance>
     <dependencies>
       <group targetFramework="net10.0" />
-      <group targetFramework="net10.0-ios" />
+      <group targetFramework="net10.0-ios18.0" />
     </dependencies>
   </metadata>
   <files>
@@ -34,8 +34,8 @@
     <file src="$NUGET_IOS_ARM64_SEAL_PATH$" target="runtimes/ios-arm64/native/" />
     <file src="../../build/bin/dotnet/$Configuration$/net10.0/SEALNet.dll" target="lib/net10.0/" />
     <file src="../../build/bin/dotnet/$Configuration$/net10.0/SEALNet.xml" target="lib/net10.0/" />
-    <file src="../../build/bin/dotnet/$Configuration$/net10.0-ios/SEALNet.dll" target="lib/net10.0-ios/" />
-    <file src="../../build/bin/dotnet/$Configuration$/net10.0-ios/SEALNet.xml" target="lib/net10.0-ios/" />
+    <file src="../../build/bin/dotnet/$Configuration$/net10.0-ios/SEALNet.dll" target="lib/net10.0-ios18.0/" />
+    <file src="../../build/bin/dotnet/$Configuration$/net10.0-ios/SEALNet.xml" target="lib/net10.0-ios18.0/" />
     <file src="../../LICENSE" target="LICENSE" />
     <file src="../../NOTICE" target="/ThirdPartyNotices" />
   </files>

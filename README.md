@@ -160,7 +160,7 @@ If this is a concern, one can always save the `SecretKey` in an uncompressed for
 For .NET developers wanting to use a previously-published release, the multiplatform NuGet package is available at [NuGet.org](https://www.nuget.org/packages/Microsoft.Research.SEALNet).
 Simply add this package into your .NET project and you are ready to go.
 To use Microsoft SEAL in mobile C# applications, just add the NuGet package to your [MAUI project](https://dotnet.microsoft.com/en-us/apps/maui).
-Unlike the Microsoft SEAL C++ library, the .NET wrapper library works only on 64-bit platforms, so only `arm64-v8a`/`x86_64` Android ABIs and `arm64`/`x86_64` iOS architectures are supported.
+Unlike the Microsoft SEAL C++ library, the .NET wrapper library works only on 64-bit platforms. Supported runtimes are `arm64-v8a`/`x86_64` Android ABIs, `arm64` for iOS device, and `arm64` for the iOS simulator (Apple Silicon Mac hosts only — Intel Mac iOS-simulator targets are not supported).
 
 ### Installing from vcpkg
 
@@ -478,7 +478,7 @@ The following options can be used with CMake to further configure the build. Mos
 | SEAL_DEFAULT_PRNG                    | **Blake2xb**</br>Shake256 | Microsoft SEAL supports both Blake2xb and Shake256 XOFs for generating random bytes. Blake2xb is much faster, but it is not standardized, whereas Shake256 is a FIPS standard.                                                                                                                           |
 | SEAL_USE_GAUSSIAN_NOISE              | ON / **OFF**              | Set to `ON` to use a non-constant time rounded continuous Gaussian for the error distribution; otherwise a centered binomial distribution &ndash; with slightly larger standard deviation &ndash; is used.                                                                                               |
 | SEAL_AVOID_BRANCHING                 | ON / **OFF**              | Set to `ON` to eliminate branching in critical functions when compiler has maliciously inserted flags; otherwise assume `cmov` is used.                                                                                               |
-| SEAL_SECURE_COMPILE_OPTIONS          | ON / **OFF**              | Set to `ON` to compile/link with Control-Flow Guard (`/guard:cf`) and Spectre mitigations (`/Qspectre`). This has an effect only when compiling with MSVC.                                                                                                                                               |
+| SEAL_SECURE_COMPILE_OPTIONS          | ON / **OFF**              | Set to `ON` to enable additional security hardening: on MSVC, Control-Flow Guard (`/guard:cf`) and Spectre mitigations (`/Qspectre`); on GCC/Clang, stack canaries (`-fstack-protector-strong`) and standard library hardening (`_GLIBCXX_ASSERTIONS`, `_LIBCPP_HARDENING_MODE_FAST`); on Linux/Android, full RELRO and a non-executable stack. Disabled by default because of potential performance impact in tight inner loops.                                                                                                                                               |
 | SEAL_USE_ALIGNED_ALLOC                    | **ON** / OFF              | Set to `ON` to use 64-byte aligned memory allocations. This can improve performance of AVX512 primitives when Intel HEXL is enabled. This depends on C++17 and is disabled on Android.                                                                                               |
 
 #### Linking with Microsoft SEAL through CMake

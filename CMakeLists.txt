@@ -16,7 +16,7 @@ endif()
 #   4. SEAL C++ tests                             #
 ###################################################
 
-project(SEAL VERSION 4.3.1 LANGUAGES CXX C)
+project(SEAL VERSION 4.3.2 LANGUAGES CXX C)
 
 # [option] CMAKE_BUILD_TYPE (default: "Release")
 # Build in one of the following modes: Release, Debug, MinSizeRel, or RelWithDebInfo.
@@ -88,8 +88,10 @@ message(STATUS "SEAL_USE_CXX17: ${SEAL_USE_CXX17}")
 # Enable features from C++17 if available, disable features if set to OFF.
 include(EnableCXX17)
 
-# Enable security-related compile options (MSVC only)
-set(SEAL_SECURE_COMPILE_OPTIONS_OPTIONS_STR "Enable Control Flow Guard and Spectre mitigations (MSVC only)")
+# Enable security-related compile options. MSVC: Control Flow Guard and
+# Spectre mitigations. Non-MSVC: stack canaries, libstdc++/libc++ hardening,
+# and (Linux/Android only) full RELRO + non-executable stack.
+set(SEAL_SECURE_COMPILE_OPTIONS_OPTIONS_STR "Enable Control Flow Guard / Spectre / stack canaries / standard library hardening")
 option(SEAL_SECURE_COMPILE_OPTIONS ${SEAL_SECURE_COMPILE_OPTIONS_OPTIONS_STR} OFF)
 mark_as_advanced(SEAL_SECURE_COMPILE_OPTIONS)
 
@@ -105,9 +107,18 @@ endif()
 # Required files and directories
 include(GNUInstallDirs)
 
-# Runtime path setup
-set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
-set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+# Runtime path setup. Apple: loader-relative entries so installed dylibs
+# resolve siblings without depending on the install prefix. ELF: absolute
+# install lib dir matching the configure-time prefix. _USE_LINK_PATH FALSE
+# prevents leaking build-machine paths (vcpkg, _deps/) into the installed
+# artifact's RPATH. Static-archive consumers (the iOS XCFramework path,
+# .a-only installs) carry no LC_RPATH and are unaffected by these settings.
+if(APPLE)
+    set(CMAKE_INSTALL_RPATH "@loader_path;@loader_path/../${CMAKE_INSTALL_LIBDIR}")
+else()
+    set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
+endif()
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
 
 # Source Tree
 set(SEAL_INCLUDES_DIR ${CMAKE_CURRENT_LIST_DIR}/native/src)
@@ -396,7 +407,7 @@ if(NOT BUILD_SHARED_LIBS)
         endif()
     endif()
 
-    # Set secure compile options if SEAL_SECURE_COMPILE_OPTIONS is ON; only supported on MSVC
+    # Set secure compile options if SEAL_SECURE_COMPILE_OPTIONS is ON.
     if(SEAL_SECURE_COMPILE_OPTIONS)
         seal_set_secure_compile_options(seal PUBLIC)
     endif()
