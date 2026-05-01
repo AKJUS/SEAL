@@ -3,6 +3,9 @@
 Homomorphic encryption schemes have various and often unexpected security models that may be surprising even to cryptography experts.
 In particular, decryptions of Microsoft SEAL ciphertexts should be treated as private information only available to the secret key owner, as sharing decryptions of ciphertexts may in some cases lead to leaking the secret key.
 If it is absolutely necessary to share information about the decryption of a ciphertext, for example when building a protocol of some kind, the number of bits shared should be kept to a minimum, and secret keys should be rotated regularly.
+The same caution applies to any other `Decryptor` output whose value depends on the secret key.
+In particular, `Decryptor::invariant_noise_budget` (and its C# mirror `Decryptor.InvariantNoiseBudget`) returns a function of `c_0 + c_1*s mod q`, and repeated evaluation on attacker-chosen ciphertexts leaks the secret key.
+This function must not be invoked on ciphertexts of unverified provenance, nor should its return value be propagated across a trust boundary.
 Commercial applications of Microsoft SEAL should be carefully reviewed by cryptography experts who are familiar with homomorphic encryption security models.
 
 ## Security
