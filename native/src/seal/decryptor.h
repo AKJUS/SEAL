@@ -77,7 +77,7 @@ namespace seal
         Computes the invariant noise budget (in bits) of a ciphertext. The
         invariant noise budget measures the amount of room there is for the noise
         to grow while ensuring correct decryptions. This function works only with
-        the BFV scheme.
+        the BFV and BGV schemes.
 
         @par Invariant Noise Budget
         The invariant noise polynomial of a ciphertext is a rational coefficient
@@ -87,9 +87,22 @@ namespace seal
         the invariant noise, and for correct decryption require it to be less than
         1/2. If v denotes the invariant noise, we define the invariant noise budget
         as -log2(2v). Thus, the invariant noise budget starts from some initial
-        value, which depends on the encryption parameters, and decreases when
-        computations are performed. When the budget reaches zero, the ciphertext
-        becomes too noisy to decrypt correctly.
+        value, which depends on the encryption parameters, and decreases as
+        homomorphic operations are performed.
+
+        @par Warning
+        The return value is a function of c_0 + c_1*s mod q and therefore depends
+        on the secret key. Repeated evaluation on attacker-chosen ciphertexts
+        leaks the secret key. This function must not be invoked on ciphertexts
+        of unverified provenance, and its return value must not be propagated
+        across a trust boundary. Its only sound use is as a forward-looking
+        diagnostic on ciphertexts produced by the caller's own computation.
+
+        Additionally, the returned value is meaningful only while the underlying
+        noise has not exceeded q/2; past that point the modular reduction aliases
+        the noise and the returned budget can land anywhere in [0, log2(q)-1]
+        regardless of whether decryption is correct. A non-zero budget does not
+        prove that Decryptor::decrypt would return the correct plaintext.
 
         @param[in] encrypted The ciphertext
         @throws std::logic_error if the scheme is not BFV/BGV

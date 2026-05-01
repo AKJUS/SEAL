@@ -5,6 +5,7 @@
 - Switched the macOS install RPATH to loader-relative (`@loader_path`) and disabled `CMAKE_INSTALL_RPATH_USE_LINK_PATH`. No effect on the default static build or the NuGet artifact.
 - Tightened `dotnet/nuget/SEALNet.targets` to match `iossimulator-arm64` only; Intel Mac iOS-simulator targets are not supported.
 - `SEAL_SECURE_COMPILE_OPTIONS` (default `OFF`) now also enables stack canaries, libstdc++/libc++ hardening, and ELF link-time hardening on GCC/Clang.
+- Documented in `decryptor.h` and `Decryptor.cs` that `invariant_noise_budget` can leak information about the secret key on attacker-chosen ciphertexts and is unreliable as a correctness signal once the noise exceeds `q/2` ([issue #742](https://github.com/microsoft/SEAL/issues/742)).
 
 ## Version 4.3.1
 

@@ -86,7 +86,7 @@ namespace Microsoft.Research.SEAL
         /// budget measures the amount of room there is for the noise to grow while ensuring
         /// correct decryptions. Dynamic memory allocations in the process are allocated from
         /// the memory pool pointed to by the given MemoryPoolHandle. This function works only
-        /// with the BFV scheme.
+        /// with the BFV and BGV schemes.
         /// </summary>
         /// <remarks>
         /// <para>
@@ -97,8 +97,21 @@ namespace Microsoft.Research.SEAL
         /// of the invariant noise polynomial the invariant noise, and for correct decryption require
         /// it to be less than 1/2. If v denotes the invariant noise, we define the invariant noise
         /// budget as -log2(2v). Thus, the invariant noise budget starts from some initial value,
-        /// which depends on the encryption parameters, and decreases when computations are performed.
-        /// When the budget reaches zero, the ciphertext becomes too noisy to decrypt correctly.
+        /// which depends on the encryption parameters, and decreases as homomorphic operations are
+        /// performed.
+        /// </para>
+        /// <para>
+        /// Warning. The return value is a function of c_0 + c_1*s mod q and therefore depends on
+        /// the secret key. Repeated evaluation on attacker-chosen ciphertexts leaks the secret key.
+        /// This function must not be invoked on ciphertexts of unverified provenance, and its return
+        /// value must not be propagated across a trust boundary. Its only sound use is as a
+        /// forward-looking diagnostic on ciphertexts produced by the caller's own computation.
+        /// </para>
+        /// <para>
+        /// Additionally, the returned value is meaningful only while the underlying noise has not
+        /// exceeded q/2; past that point the modular reduction aliases the noise and the returned
+        /// budget can land anywhere in [0, log2(q)-1] regardless of whether decryption is correct.
+        /// A non-zero budget does not prove that Decrypt would return the correct plaintext.
         /// </para>
         /// </remarks>
         /// <param name="encrypted">The ciphertext</param>
