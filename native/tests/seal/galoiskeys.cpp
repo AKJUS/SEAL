@@ -170,7 +170,7 @@ namespace sealtest
                 parms.set_poly_modulus_degree(8);
                 parms.set_plain_modulus(65537);
                 parms.set_coeff_modulus(CoeffModulus::Create(8, { 60, 60 }));
-                prng_seed_type seed;
+                prng_seed_type seed = {};
                 for (auto &i : seed)
                 {
                     i = random_uint64();
@@ -193,7 +193,7 @@ namespace sealtest
                 parms.set_poly_modulus_degree(256);
                 parms.set_plain_modulus(65537);
                 parms.set_coeff_modulus(CoeffModulus::Create(256, { 60, 50 }));
-                prng_seed_type seed;
+                prng_seed_type seed = {};
                 for (auto &i : seed)
                 {
                     i = random_uint64();

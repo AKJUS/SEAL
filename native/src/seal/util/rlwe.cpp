@@ -322,7 +322,7 @@ namespace seal
             auto bootstrap_prng = parms.random_generator()->create();
 
             // Sample a public seed for generating uniform randomness
-            prng_seed_type public_prng_seed;
+            prng_seed_type public_prng_seed = {};
             bootstrap_prng->generate(prng_seed_byte_count, reinterpret_cast<seal_byte *>(public_prng_seed.data()));
 
             // Set up a new default PRNG for expanding u from the seed sampled above
