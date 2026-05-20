@@ -369,6 +369,18 @@ namespace seal
                 throw logic_error("loaded SEALHeader is invalid");
             }
 
+            // Reject headers whose advertised size exceeds the bytes
+            // actually available, to prevent an attacker-sized allocation
+            // in the SafeByteBuffer below.
+            auto current_pos = stream.tellg();
+            stream.seekg(0, ios_base::end);
+            auto stream_end_pos = stream.tellg();
+            stream.seekg(current_pos);
+            if (header.size > safe_cast<uint64_t>(stream_end_pos - stream_start_pos))
+            {
+                throw invalid_argument("SEALHeader.size exceeds available input");
+            }
+
             // Read header version information so we can call, if necessary, the
             // correct variant of load_members.
             SEALVersion version{ header.version_major, header.version_minor, 0, 0 };

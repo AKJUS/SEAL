@@ -107,6 +107,15 @@ namespace seal
             uint64_t keys_dim1 = 0;
             stream.read(reinterpret_cast<char *>(&keys_dim1), sizeof(uint64_t));
 
+            // Bound keys_dim1 against the maximum possible number of key-switching
+            // keys (one per Galois element, at most SEAL_POLY_MOD_DEGREE_MAX) to
+            // prevent a hostile stream from triggering an arbitrarily large
+            // allocation in reserve() below.
+            if (keys_dim1 > SEAL_POLY_MOD_DEGREE_MAX)
+            {
+                throw logic_error("KSwitchKeys outer dimension is invalid");
+            }
+
             // Reserve first for dimension of keys_
             new_keys.reserve(safe_cast<size_t>(keys_dim1));
 
@@ -116,6 +125,13 @@ namespace seal
                 // Read the size of the second dimension
                 uint64_t keys_dim2 = 0;
                 stream.read(reinterpret_cast<char *>(&keys_dim2), sizeof(uint64_t));
+
+                // Bound keys_dim2 by the maximum coefficient modulus count, for
+                // the same reason as above.
+                if (keys_dim2 > SEAL_COEFF_MOD_COUNT_MAX)
+                {
+                    throw logic_error("KSwitchKeys inner dimension is invalid");
+                }
 
                 // Don't resize; only reserve
                 new_keys.emplace_back();
