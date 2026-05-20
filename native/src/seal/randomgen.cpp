@@ -68,7 +68,7 @@ namespace seal
         BOOLEAN genrand_result = FALSE;
         if (RtlGenRandom)
         {
-            genrand_result = RtlGenRandom(buf, bytes_per_uint64);
+            genrand_result = RtlGenRandom(buf, static_cast<ULONG>(count));
         }
 
         DWORD dwError = GetLastError();
