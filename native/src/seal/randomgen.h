@@ -440,7 +440,7 @@ namespace seal
         SEAL_NODISCARD auto create() -> std::shared_ptr<UniformRandomGenerator>
         {
             return use_random_seed_ ? create_impl([]() {
-                prng_seed_type seed{};
+                prng_seed_type seed = {};
                 random_bytes(reinterpret_cast<seal_byte *>(seed.data()), prng_seed_byte_count);
                 return seed;
             }())
