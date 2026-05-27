@@ -369,16 +369,33 @@ namespace seal
                 throw logic_error("loaded SEALHeader is invalid");
             }
 
-            // Reject headers whose advertised size exceeds the bytes
-            // actually available, to prevent an attacker-sized allocation
-            // in the SafeByteBuffer below.
-            auto current_pos = stream.tellg();
-            stream.seekg(0, ios_base::end);
-            auto stream_end_pos = stream.tellg();
-            stream.seekg(current_pos);
-            if (header.size > safe_cast<uint64_t>(stream_end_pos - stream_start_pos))
+            // Best-effort: reject headers whose advertised size exceeds the bytes actually available,
+            // to prevent an attacker-sized allocation in the SafeByteBuffer below. We probe via the
+            // streambuf directly because pubseekoff/pubseekpos report failure with pos_type(-1)
+            // without mutating stream state, so non-seekable streams don't trip the failbit/badbit
+            // exception mask set above. rdbuf() is not null-checked: if it were null, the preceding
+            // LoadHeader call would already have thrown on the first read (a null rdbuf implies
+            // badbit, which is in the exception mask).
+            auto *sb = stream.rdbuf();
+            const auto seek_fail = streambuf::pos_type(streambuf::off_type(-1));
+            auto current_off = sb->pubseekoff(0, ios_base::cur, ios_base::in);
+            if (current_off != seek_fail)
             {
-                throw invalid_argument("SEALHeader.size exceeds available input");
+                auto end_off = sb->pubseekoff(0, ios_base::end, ios_base::in);
+                if (end_off != seek_fail)
+                {
+                    // Restore the read position via a relative seek from end. Using seekoff (rather
+                    // than absolute seekpos) keeps the restore working on streambufs that implement
+                    // only relative seeking. We are not aware of any standard or commonly used
+                    // streambuf that supports the seekoff calls above but would fail this one. If
+                    // even this fails, the stream is left at end and the subsequent read will
+                    // surface that as a normal end-of-stream failure.
+                    sb->pubseekoff(current_off - end_off, ios_base::end, ios_base::in);
+                    if (header.size > safe_cast<uint64_t>(end_off - stream_start_pos))
+                    {
+                        throw invalid_argument("SEALHeader.size exceeds available input");
+                    }
+                }
             }
 
             // Read header version information so we can call, if necessary, the
