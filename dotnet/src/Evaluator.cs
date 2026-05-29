@@ -54,7 +54,12 @@ namespace Microsoft.Research.SEAL
     /// polynomials to NTT form. These can be used in a very fast plain multiplication variant, that assumes the inputs
     /// to be in NTT form. Since the NTT has to be done in any case in plain multiplication, this function can be used
     /// when e.g. one plaintext input is used in several plain multiplication, and transforming it several times would
-    /// not make sense.
+    /// not make sense. In particular, when many plain multiplications are accumulated -- for example a sum of products
+    /// of the form sum_i encrypted_i * plain_i -- the ciphertexts and plaintexts can be transformed to NTT form once
+    /// with TransformToNTT, the products formed and added together with MultiplyPlain and Add while in NTT form, and a
+    /// single TransformFromNTT applied to the accumulated result at the end. This avoids a forward and inverse NTT per
+    /// product and can be significantly faster. The accumulated result must be transformed back to the default form
+    /// before decryption.
     /// </para>
     /// <para>
     /// NTT form

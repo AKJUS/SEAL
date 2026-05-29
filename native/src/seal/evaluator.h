@@ -55,7 +55,12 @@ namespace seal
     polynomials to NTT form. These can be used in a very fast plain multiplication variant, that assumes the inputs to
     be in NTT form. Since the NTT has to be done in any case in plain multiplication, this function can be used when
     e.g. one plaintext input is used in several plain multiplication, and transforming it several times would not make
-    sense.
+    sense. In particular, when many plain multiplications are accumulated -- for example a sum of products of the form
+    sum_i encrypted_i * plain_i -- the ciphertexts and plaintexts can be transformed to NTT form once with
+    transform_to_ntt, the products formed and added together with multiply_plain and add while in NTT form, and a single
+    transform_from_ntt applied to the accumulated result at the end. This avoids a forward and inverse NTT per product
+    and can be significantly faster. The accumulated result must be transformed back to the default form before
+    decryption.
 
     @par NTT form
     When using the BFV/BGV scheme (scheme_type::bfv/bgv), all plaintexts and ciphertexts should remain by default in the

@@ -6,6 +6,7 @@
 - Hardened loading of zlib/zstd-compressed objects against decompression bombs by inflating on demand; the wire format is unchanged.
 - Fixed the Windows `RtlGenRandom` fallback to fill the entire requested buffer and to cast its length safely to `ULONG`.
 - Noted in `SECURITY.md` that `Decryptor::invariant_noise_budget` can leak the secret key on attacker-chosen ciphertexts.
+- Documented in `Evaluator` (C++ and .NET) the NTT-domain `multiply_plain` accumulation pattern for repeated plaintext-ciphertext products ([issue #744](https://github.com/microsoft/SEAL/issues/744)).
 
 ## Version 4.3.2
 
