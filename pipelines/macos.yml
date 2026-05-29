@@ -12,7 +12,6 @@ steps:
       -DSEAL_BUILD_TESTS=ON
       -DSEAL_BUILD_SEAL_C=ON
       -DSEAL_BUILD_EXAMPLES=ON
-      -DSEAL_BUILD_BENCH=ON
 
 - script: |
     cmake --build build-x64 \
@@ -35,7 +34,6 @@ steps:
       -DSEAL_BUILD_TESTS=ON
       -DSEAL_BUILD_SEAL_C=ON
       -DSEAL_BUILD_EXAMPLES=ON
-      -DSEAL_BUILD_BENCH=ON
       -C cmake/functions.macos-arm64.cmake
 
 - script: |
