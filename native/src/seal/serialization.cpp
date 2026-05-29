@@ -417,21 +417,34 @@ namespace seal
             {
                 auto compr_size = header.size - safe_cast<uint64_t>(stream.tellg() - stream_start_pos);
 
-                // We don't know the decompressed size, but use compr_size as
-                // starting point for the buffer.
-                SafeByteBuffer safe_buffer(safe_cast<streamsize>(compr_size), clear_buffers);
-
-                iostream temp_stream(&safe_buffer);
-                temp_stream.exceptions(ios_base::badbit | ios_base::failbit);
-
                 auto safe_pool = MemoryManager::GetPool(mm_prof_opt::mm_force_new, clear_buffers);
 
-                // Throw an exception on non-zero return value
-                if (ztools::zlib_inflate_stream(stream, safe_cast<streamoff>(compr_size), temp_stream, safe_pool))
+                // Inflate on demand directly into the parser rather than decompressing the entire payload up front.
+                // This bounds memory use during loading to what the parser actually reads, so a hostile stream cannot
+                // inflate to an unbounded buffer (a decompression bomb).
+                streamoff compressed_remaining = 0;
                 {
-                    throw logic_error("stream decompression failed");
+                    auto inflate_buffer =
+                        ztools::make_zlib_inflate_buffer(stream, safe_cast<streamoff>(compr_size), safe_pool);
+                    istream temp_stream(inflate_buffer.get());
+                    temp_stream.exceptions(ios_base::badbit | ios_base::failbit);
+
+                    load_members(temp_stream, version);
+
+                    if (inflate_buffer->failed())
+                    {
+                        throw logic_error("stream decompression failed");
+                    }
+                    compressed_remaining = inflate_buffer->remaining();
                 }
-                load_members(temp_stream, version);
+
+                // The parser may not have pulled the whole compressed payload (e.g., a trailing checksum). Skip any
+                // remainder so the stream ends exactly at stream_start_pos + header.size, matching the uncompressed
+                // path and keeping concatenated objects loadable.
+                if (compressed_remaining > 0)
+                {
+                    stream.ignore(compressed_remaining);
+                }
                 break;
             }
 #endif
@@ -440,21 +453,34 @@ namespace seal
             {
                 auto compr_size = header.size - safe_cast<uint64_t>(stream.tellg() - stream_start_pos);
 
-                // We don't know the decompressed size, but use compr_size as
-                // starting point for the buffer.
-                SafeByteBuffer safe_buffer(safe_cast<streamsize>(compr_size), clear_buffers);
-
-                iostream temp_stream(&safe_buffer);
-                temp_stream.exceptions(ios_base::badbit | ios_base::failbit);
-
                 auto safe_pool = MemoryManager::GetPool(mm_prof_opt::mm_force_new, clear_buffers);
 
-                // Throw an exception on non-zero return value
-                if (ztools::zstd_inflate_stream(stream, safe_cast<streamoff>(compr_size), temp_stream, safe_pool))
+                // Inflate on demand directly into the parser rather than decompressing the entire payload up front.
+                // This bounds memory use during loading to what the parser actually reads, so a hostile stream cannot
+                // inflate to an unbounded buffer (a decompression bomb).
+                streamoff compressed_remaining = 0;
                 {
-                    throw logic_error("stream decompression failed");
+                    auto inflate_buffer =
+                        ztools::make_zstd_inflate_buffer(stream, safe_cast<streamoff>(compr_size), safe_pool);
+                    istream temp_stream(inflate_buffer.get());
+                    temp_stream.exceptions(ios_base::badbit | ios_base::failbit);
+
+                    load_members(temp_stream, version);
+
+                    if (inflate_buffer->failed())
+                    {
+                        throw logic_error("stream decompression failed");
+                    }
+                    compressed_remaining = inflate_buffer->remaining();
                 }
-                load_members(temp_stream, version);
+
+                // The parser may not have pulled the whole compressed payload (e.g., a trailing checksum). Skip any
+                // remainder so the stream ends exactly at stream_start_pos + header.size, matching the uncompressed
+                // path and keeping concatenated objects loadable.
+                if (compressed_remaining > 0)
+                {
+                    stream.ignore(compressed_remaining);
+                }
                 break;
             }
 #endif

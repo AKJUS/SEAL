@@ -10,11 +10,13 @@
 #include "seal/serialization.h"
 #include "seal/util/pointer.h"
 #include "seal/util/ztools.h"
+#include <algorithm>
 #include <cstddef>
 #include <cstring>
 #include <ios>
 #include <iostream>
 #include <limits>
+#include <memory>
 #include <sstream>
 #include <unordered_map>
 
@@ -56,6 +58,101 @@ namespace seal
                     unordered_map<void *, Pointer<seal_byte>> ptr_storage_;
                 };
             } // namespace
+
+            InflateGetBuffer::InflateGetBuffer(istream &in_stream, streamoff in_size, MemoryPoolHandle pool)
+                : in_buf_(allocate<unsigned char>(buffer_size, pool)),
+                  out_buf_(allocate<unsigned char>(buffer_size, pool)), in_stream_(in_stream), in_remaining_(in_size),
+                  in_stream_except_mask_(in_stream.exceptions())
+            {
+                // Decompression reports failure through failed_ rather than stream exceptions, so clear the mask while
+                // we read; it is restored in the destructor.
+                in_stream_.exceptions(ios_base::goodbit);
+
+                // Start with an empty get area so that the first read triggers underflow().
+                char_type *base = reinterpret_cast<char_type *>(out_buf_.get());
+                setg(base, base, base);
+            }
+
+            InflateGetBuffer::~InflateGetBuffer()
+            {
+                in_stream_.exceptions(in_stream_except_mask_);
+            }
+
+            streamsize InflateGetBuffer::read_compressed(unsigned char *dst, streamsize count)
+            {
+                streamsize to_read = min<streamsize>(count, in_remaining_);
+                if (to_read <= 0)
+                {
+                    return 0;
+                }
+                in_stream_.read(reinterpret_cast<char *>(dst), to_read);
+                streamsize got = in_stream_.gcount();
+                in_remaining_ -= got;
+                return got;
+            }
+
+            InflateGetBuffer::int_type InflateGetBuffer::underflow()
+            {
+                if (gptr() < egptr())
+                {
+                    return traits_type::to_int_type(*gptr());
+                }
+
+                // Pull and inflate until we produce output, reach the end of the stream, or fail. inflate_chunk()
+                // guarantees progress: it sets failed_ when it can make none (e.g., truncated input), so this loop
+                // always terminates.
+                while (!failed_)
+                {
+                    size_t produced = inflate_chunk();
+                    if (failed_)
+                    {
+                        break;
+                    }
+                    if (produced)
+                    {
+                        char_type *base = reinterpret_cast<char_type *>(out_buf_.get());
+                        setg(base, base, base + produced);
+                        total_produced_ += static_cast<streamoff>(produced);
+                        return traits_type::to_int_type(*gptr());
+                    }
+                    if (finished_)
+                    {
+                        return traits_type::eof();
+                    }
+                }
+                return traits_type::eof();
+            }
+
+            streamsize InflateGetBuffer::xsgetn(char_type *s, streamsize count)
+            {
+                streamsize total = 0;
+                while (total < count)
+                {
+                    if (gptr() == egptr() && traits_type::eq_int_type(underflow(), traits_type::eof()))
+                    {
+                        break;
+                    }
+                    streamsize avail = min<streamsize>(count - total, static_cast<streamsize>(egptr() - gptr()));
+                    copy_n(gptr(), avail, s + total);
+
+                    // avail is at most buffer_size, which is well within the range of int.
+                    gbump(static_cast<int>(avail));
+                    total += avail;
+                }
+                return total;
+            }
+
+            InflateGetBuffer::pos_type InflateGetBuffer::seekoff(
+                off_type off, ios_base::seekdir dir, ios_base::openmode which)
+            {
+                // Only a no-op seek to the current input position is supported, i.e. tellg(). The position is the
+                // number of decompressed bytes already consumed from the get area.
+                if (off == 0 && dir == ios_base::cur && (which & ios_base::in))
+                {
+                    return pos_type(total_produced_ - static_cast<off_type>(egptr() - gptr()));
+                }
+                return pos_type(off_type(-1));
+            }
         } // namespace ztools
     } // namespace util
 } // namespace seal
@@ -118,7 +215,94 @@ namespace seal
                 {
                     reinterpret_cast<PointerStorage *>(ptr_storage)->free(addr);
                 }
+
+                // Inflating stream buffer specialization for ZLIB.
+                class ZlibInflateGetBuffer : public InflateGetBuffer
+                {
+                public:
+                    ZlibInflateGetBuffer(istream &in_stream, streamoff in_size, MemoryPoolHandle pool)
+                        : InflateGetBuffer(in_stream, in_size, pool), ptr_storage_(pool)
+                    {
+                        zstream_.data_type = Z_BINARY;
+                        zstream_.zalloc = zlib_alloc_impl;
+                        zstream_.zfree = zlib_free_impl;
+                        zstream_.opaque = reinterpret_cast<voidpf>(&ptr_storage_);
+                        zstream_.avail_in = 0;
+                        zstream_.next_in = Z_NULL;
+                        if (inflateInit(&zstream_) != Z_OK)
+                        {
+                            failed_ = true;
+                        }
+                        else
+                        {
+                            inited_ = true;
+                        }
+                    }
+
+                    ~ZlibInflateGetBuffer() override
+                    {
+                        if (inited_)
+                        {
+                            inflateEnd(&zstream_);
+                        }
+                    }
+
+                protected:
+                    size_t inflate_chunk() override
+                    {
+                        if (finished_)
+                        {
+                            return 0;
+                        }
+
+                        // Refill the compressed input if the decompressor has consumed all of it.
+                        if (!in_avail_)
+                        {
+                            in_avail_ = static_cast<size_t>(read_compressed(in_buf_.get(), buffer_size));
+                            in_next_ = in_buf_.get();
+                            if (!in_avail_)
+                            {
+                                // No more compressed input but the stream did not end: truncated input.
+                                failed_ = true;
+                                return 0;
+                            }
+                        }
+
+                        zstream_.next_in = in_next_;
+                        zstream_.avail_in = static_cast<uInt>(in_avail_);
+                        zstream_.next_out = out_buf_.get();
+                        zstream_.avail_out = static_cast<uInt>(buffer_size);
+
+                        int result = inflate(&zstream_, Z_NO_FLUSH);
+                        if (result == Z_NEED_DICT || result == Z_DATA_ERROR || result == Z_MEM_ERROR ||
+                            result == Z_STREAM_ERROR)
+                        {
+                            failed_ = true;
+                            return 0;
+                        }
+
+                        size_t consumed = in_avail_ - static_cast<size_t>(zstream_.avail_in);
+                        in_next_ += consumed;
+                        in_avail_ = static_cast<size_t>(zstream_.avail_in);
+                        if (result == Z_STREAM_END)
+                        {
+                            finished_ = true;
+                        }
+                        return buffer_size - static_cast<size_t>(zstream_.avail_out);
+                    }
+
+                private:
+                    PointerStorage ptr_storage_;
+                    z_stream zstream_;
+                    bool inited_ = false;
+                };
             } // namespace
+
+            unique_ptr<InflateGetBuffer> make_zlib_inflate_buffer(
+                istream &in_stream, streamoff in_size, MemoryPoolHandle pool)
+            {
+                return make_unique<ZlibInflateGetBuffer>(in_stream, in_size, std::move(pool));
+            }
 
             int zlib_deflate_array_inplace(DynArray<seal_byte> &in, MemoryPoolHandle pool)
             {
@@ -294,99 +478,6 @@ namespace seal
                 return Z_OK;
             }
 
-            int zlib_inflate_stream(istream &in_stream, streamoff in_size, ostream &out_stream, MemoryPoolHandle pool)
-            {
-                // Clear the exception masks; this function returns an error code
-                // on failure rather than throws an IO exception.
-                auto in_stream_except_mask = in_stream.exceptions();
-                in_stream.exceptions(ios_base::goodbit);
-                auto out_stream_except_mask = out_stream.exceptions();
-                out_stream.exceptions(ios_base::goodbit);
-
-                auto in_stream_start_pos = in_stream.tellg();
-                auto in_stream_end_pos = in_stream_start_pos + in_size;
-
-                int result;
-                size_t have;
-
-                auto in(allocate<unsigned char>(buffer_size, pool));
-                auto out(allocate<unsigned char>(buffer_size, pool));
-
-                z_stream zstream;
-                zstream.data_type = Z_BINARY;
-
-                PointerStorage ptr_storage(pool);
-                zstream.zalloc = zlib_alloc_impl;
-                zstream.zfree = zlib_free_impl;
-                zstream.opaque = reinterpret_cast<voidpf>(&ptr_storage);
-
-                zstream.avail_in = 0;
-                zstream.next_in = Z_NULL;
-                result = inflateInit(&zstream);
-                if (result != Z_OK)
-                {
-                    in_stream.exceptions(in_stream_except_mask);
-                    out_stream.exceptions(out_stream_except_mask);
-                    return result;
-                }
-
-                do
-                {
-                    if (!in_stream.read(
-                            reinterpret_cast<char *>(in.get()),
-                            min(static_cast<streamoff>(buffer_size), in_stream_end_pos - in_stream.tellg())))
-                    {
-                        inflateEnd(&zstream);
-                        in_stream.exceptions(in_stream_except_mask);
-                        out_stream.exceptions(out_stream_except_mask);
-                        return Z_ERRNO;
-                    }
-                    if (0 == (zstream.avail_in = static_cast<decltype(zstream.avail_in)>(in_stream.gcount())))
-                    {
-                        break;
-                    }
-                    zstream.next_in = in.get();
-
-                    do
-                    {
-                        zstream.avail_out = buffer_size;
-                        zstream.next_out = out.get();
-                        result = inflate(&zstream, Z_NO_FLUSH);
-
-                        switch (result)
-                        {
-                        case Z_NEED_DICT:
-                            result = Z_DATA_ERROR;
-                            /* fall through */
-
-                        case Z_DATA_ERROR:
-                            /* fall through */
-
-                        case Z_MEM_ERROR:
-                            inflateEnd(&zstream);
-                            in_stream.exceptions(in_stream_except_mask);
-                            out_stream.exceptions(out_stream_except_mask);
-                            return result;
-                        }
-
-                        have = buffer_size - static_cast<size_t>(zstream.avail_out);
-
-                        if (!out_stream.write(reinterpret_cast<const char *>(out.get()), static_cast<streamsize>(have)))
-                        {
-                            inflateEnd(&zstream);
-                            in_stream.exceptions(in_stream_except_mask);
-                            out_stream.exceptions(out_stream_except_mask);
-                            return Z_ERRNO;
-                        }
-                    } while (!zstream.avail_out);
-                } while (result != Z_STREAM_END);
-
-                inflateEnd(&zstream);
-                in_stream.exceptions(in_stream_except_mask);
-                out_stream.exceptions(out_stream_except_mask);
-                return result == Z_STREAM_END ? Z_OK : Z_DATA_ERROR;
-            }
-
             void zlib_write_header_deflate_buffer(
                 DynArray<seal_byte> &in, void *header_ptr, ostream &out_stream, MemoryPoolHandle pool)
             {
@@ -500,7 +591,87 @@ namespace seal
                 {
                     reinterpret_cast<PointerStorage *>(ptr_storage)->free(addr);
                 }
+
+                // Inflating stream buffer specialization for Zstandard.
+                class ZstdInflateGetBuffer : public InflateGetBuffer
+                {
+                public:
+                    ZstdInflateGetBuffer(istream &in_stream, streamoff in_size, MemoryPoolHandle pool)
+                        : InflateGetBuffer(in_stream, in_size, pool), ptr_storage_(pool)
+                    {
+                        mem_.customAlloc = zstd_alloc_impl;
+                        mem_.customFree = zstd_free_impl;
+                        mem_.opaque = &ptr_storage_;
+                        dctx_ = ZSTD_createDCtx_advanced(mem_);
+                        if (!dctx_)
+                        {
+                            failed_ = true;
+                        }
+                    }
+
+                    ~ZstdInflateGetBuffer() override
+                    {
+                        if (dctx_)
+                        {
+                            ZSTD_freeDCtx(dctx_);
+                        }
+                    }
+
+                protected:
+                    size_t inflate_chunk() override
+                    {
+                        if (finished_)
+                        {
+                            return 0;
+                        }
+
+                        // Refill the compressed input if the decompressor has consumed all of it.
+                        if (!in_avail_)
+                        {
+                            in_avail_ = static_cast<size_t>(read_compressed(in_buf_.get(), buffer_size));
+                            in_next_ = in_buf_.get();
+                            if (!in_avail_)
+                            {
+                                // No more compressed input but the stream did not end: truncated input.
+                                failed_ = true;
+                                return 0;
+                            }
+                        }
+
+                        ZSTD_inBuffer input = { in_next_, in_avail_, 0 };
+                        ZSTD_outBuffer output = { out_buf_.get(), buffer_size, 0 };
+
+                        size_t ret = ZSTD_decompressStream(dctx_, &output, &input);
+                        if (ZSTD_isError(ret))
+                        {
+                            failed_ = true;
+                            return 0;
+                        }
+
+                        in_next_ += input.pos;
+                        in_avail_ -= input.pos;
+
+                        // A return value of 0 indicates a frame was fully decoded; SEAL writes a single frame, so this
+                        // marks the end of the stream.
+                        if (ret == 0)
+                        {
+                            finished_ = true;
+                        }
+                        return output.pos;
+                    }
+
+                private:
+                    PointerStorage ptr_storage_;
+                    ZSTD_customMem mem_;
+                    ZSTD_DCtx *dctx_ = nullptr;
+                };
             } // namespace
+
+            unique_ptr<InflateGetBuffer> make_zstd_inflate_buffer(
+                istream &in_stream, streamoff in_size, MemoryPoolHandle pool)
+            {
+                return make_unique<ZstdInflateGetBuffer>(in_stream, in_size, std::move(pool));
+            }
 
             unsigned zstd_deflate_array_inplace(DynArray<seal_byte> &in, MemoryPoolHandle pool)
             {
@@ -662,88 +833,6 @@ namespace seal
 
                 ZSTD_freeCCtx(cctx);
 
-                return ZSTD_error_no_error;
-            }
-
-            unsigned zstd_inflate_stream(
-                istream &in_stream, streamoff in_size, ostream &out_stream, MemoryPoolHandle pool)
-            {
-                // Clear the exception masks; this function returns an error code
-                // on failure rather than throws an IO exception.
-                auto in_stream_except_mask = in_stream.exceptions();
-                in_stream.exceptions(ios_base::goodbit);
-                auto out_stream_except_mask = out_stream.exceptions();
-                out_stream.exceptions(ios_base::goodbit);
-
-                auto in_stream_start_pos = in_stream.tellg();
-                auto in_stream_end_pos = in_stream_start_pos + in_size;
-
-                auto in(allocate<unsigned char>(buffer_size, pool));
-                auto out(allocate<unsigned char>(buffer_size, pool));
-
-                PointerStorage ptr_storage(pool);
-                ZSTD_customMem mem;
-                mem.customAlloc = zstd_alloc_impl;
-                mem.customFree = zstd_free_impl;
-                mem.opaque = &ptr_storage;
-
-                ZSTD_DCtx *dctx = ZSTD_createDCtx_advanced(mem);
-                if (!dctx)
-                {
-                    // Failed to set up the context; there is something wrong with the allocator
-                    in_stream.exceptions(in_stream_except_mask);
-                    out_stream.exceptions(out_stream_except_mask);
-                    return ZSTD_error_GENERIC;
-                }
-
-                // Holds the return value of the decompression call. This is either the amount of data that remains to
-                // be flushed from internal buffers, or an error code.
-                size_t pending = 0;
-
-                while (true)
-                {
-                    if (!in_stream.read(
-                            reinterpret_cast<char *>(in.get()),
-                            min(static_cast<streamoff>(buffer_size), in_stream_end_pos - in_stream.tellg())))
-                    {
-                        // Failed to read from stream
-                        in_stream.exceptions(in_stream_except_mask);
-                        out_stream.exceptions(out_stream_except_mask);
-                        return ZSTD_error_GENERIC;
-                    }
-
-                    ZSTD_inBuffer input = { in.get(), static_cast<size_t>(in_stream.gcount()), 0 };
-                    if (!input.size)
-                    {
-                        break;
-                    }
-
-                    while (input.pos < input.size)
-                    {
-                        ZSTD_outBuffer output = { out.get(), buffer_size, 0 };
-                        pending = ZSTD_decompressStream(dctx, &output, &input);
-
-                        if (ZSTD_isError(pending))
-                        {
-                            in_stream.exceptions(in_stream_except_mask);
-                            out_stream.exceptions(out_stream_except_mask);
-                            return static_cast<unsigned>(pending);
-                        }
-
-                        if (!out_stream.write(
-                                reinterpret_cast<const char *>(out.get()), static_cast<streamsize>(output.pos)))
-                        {
-                            in_stream.exceptions(in_stream_except_mask);
-                            out_stream.exceptions(out_stream_except_mask);
-                            return ZSTD_error_GENERIC;
-                        }
-                    }
-                }
-
-                ZSTD_freeDCtx(dctx);
-
-                in_stream.exceptions(in_stream_except_mask);
-                out_stream.exceptions(out_stream_except_mask);
                 return ZSTD_error_no_error;
             }
 

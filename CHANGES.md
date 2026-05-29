@@ -1,5 +1,12 @@
 # List of Changes
 
+## Version 4.3.3
+
+- Hardened `Serialization::Load` against hostile input by bounding deserialized `KSwitchKeys`/`GaloisKeys`/`RelinKeys` dimensions and rejecting a `SEALHeader` whose size exceeds the available input, including on non-seekable streams.
+- Hardened loading of zlib/zstd-compressed objects against decompression bombs by inflating on demand; the wire format is unchanged.
+- Fixed the Windows `RtlGenRandom` fallback to fill the entire requested buffer and to cast its length safely to `ULONG`.
+- Noted in `SECURITY.md` that `Decryptor::invariant_noise_budget` can leak the secret key on attacker-chosen ciphertexts.
+
 ## Version 4.3.2
 
 - Switched the macOS install RPATH to loader-relative (`@loader_path`) and disabled `CMAKE_INSTALL_RPATH_USE_LINK_PATH`. No effect on the default static build or the NuGet artifact.
